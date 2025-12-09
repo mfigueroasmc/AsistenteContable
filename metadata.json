@@ -1,0 +1,5 @@
+{
+  "name": "Asistente Contabilidad Gubernamental CL",
+  "description": "Asistente inteligente con soporte RAG para el Sistema de Contabilidad Gubernamental de Chile, orientado a funcionarios municipales.",
+  "requestFramePermissions": []
+}
