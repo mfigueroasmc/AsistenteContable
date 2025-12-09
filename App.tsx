@@ -89,7 +89,7 @@ const App: React.FC = () => {
         {/* Header */}
         <div className="bg-blue-700 text-white p-4 flex items-center gap-3 shadow-md z-10">
           <Search className="w-6 h-6 text-blue-200" />
-          <h1 className="text-lg font-semibold tracking-wide">Asistente de Contabilidad</h1>
+          <h1 className="text-lg font-semibold tracking-wide">Asistente de Búsqueda y Soporte</h1>
         </div>
 
         {/* Configuration Bar */}
@@ -97,7 +97,7 @@ const App: React.FC = () => {
           {/* Module Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
-              <Server className="w-3 h-3" /> Seleccione Opción del Sistema Contable (Menú Principal)
+              <Server className="w-3 h-3" /> Seleccione Sistema (Menú Principal)
             </label>
             <div className="relative">
               <select 
@@ -153,12 +153,12 @@ const App: React.FC = () => {
         </div>
 
         {/* Main Content Area (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-white relative">
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-white relative min-h-[14rem]">
           
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col justify-center items-center text-slate-400 opacity-60">
+            <div className="h-full flex flex-col justify-center items-center text-slate-500 opacity-60">
                <MessageSquare className="w-16 h-16 mb-4 text-slate-200" />
-               <p className="text-sm">Inicia una consulta seleccionando un módulo del sistema</p>
+               <p className="text-sm font-medium">Inicia una consulta seleccionando un módulo del sistema</p>
             </div>
           ) : (
             <div className="space-y-6">
