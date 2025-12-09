@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Server, FileText, History, MessageSquare, Send, ChevronDown } from 'lucide-react';
+import { Search, Server, FileText, History, MessageSquare, Send, ChevronDown, RefreshCw } from 'lucide-react';
 import { SystemModule, DataSource, ChatMessage } from './types';
 import { SUGGESTIONS, MODULE_OPTIONS } from './constants';
 import { sendMessageToGemini } from './services/geminiService';
@@ -20,6 +20,7 @@ const App: React.FC = () => {
 
   // Scroll to bottom on new message
   useEffect(() => {
+    // With full page scrolling, this will scroll the window
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
@@ -75,6 +76,13 @@ const App: React.FC = () => {
     }, 1500); // 1.5s fake delay for "Retrieval" visualization
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setQuery('');
+    setLoadingStep('searching');
+    setIsLoading(false);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -92,17 +100,29 @@ const App: React.FC = () => {
     : SUGGESTIONS.slice(0, 3); // Fallback to first 3 if no match
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
+    <div className="min-h-screen bg-slate-100 flex justify-center p-4 pb-12">
+      {/* Removed fixed height (max-h) and internal scroll (overflow-hidden) to show full content */}
+      <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl flex flex-col">
         
         {/* Header - Sticky ensures it stays visible even if layout shifts */}
-        <div className="bg-blue-700 text-white p-4 flex items-center gap-3 shadow-md z-20 shrink-0 sticky top-0">
-          <Search className="w-6 h-6 text-blue-200" />
-          <h1 className="text-lg font-semibold tracking-wide">Asistente del Sistema de Contabilidad</h1>
+        <div className="bg-blue-700 text-white p-4 flex items-center justify-between shadow-md z-30 sticky top-0 rounded-t-xl">
+          <div className="flex items-center gap-3">
+            <Search className="w-6 h-6 text-blue-200" />
+            <h1 className="text-lg font-semibold tracking-wide truncate">Asistente del Sistema de Contabilidad</h1>
+          </div>
+          
+          <button 
+            onClick={handleNewChat}
+            className="flex items-center gap-2 bg-blue-600/80 hover:bg-blue-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-colors border border-blue-400/30 ml-2 shadow-sm"
+            title="Iniciar una nueva conversación"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Nueva Consulta</span>
+          </button>
         </div>
 
         {/* Configuration Bar */}
-        <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-4 shrink-0 z-10">
+        <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-4 z-20">
           {/* Module Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
@@ -161,12 +181,11 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Area (Scrollable) */}
-        {/* min-h-[12rem] approx 7 lines of content */}
-        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-white relative min-h-[12rem]">
+        {/* Main Content Area - Expands naturally with content */}
+        <div className="flex-1 p-4 bg-white relative min-h-[300px]">
           
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col justify-center items-center text-slate-500 opacity-60">
+            <div className="h-full py-12 flex flex-col justify-center items-center text-slate-500 opacity-60">
                <MessageSquare className="w-16 h-16 mb-4 text-slate-200" />
                <p className="text-sm font-medium">Inicia una consulta seleccionando un módulo del sistema</p>
             </div>
@@ -212,13 +231,13 @@ const App: React.FC = () => {
               ))}
               
               {isLoading && <LoadingIndicator step={loadingStep} />}
-              <div ref={messagesEndRef} />
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Input & Suggestions Area */}
-        <div className="bg-white p-4 border-t border-slate-100 z-10 shrink-0">
+        {/* Input & Suggestions Area - Flows at the bottom */}
+        <div className="bg-white p-4 border-t border-slate-100 z-10">
           
           {/* Input Box */}
           <div className="relative mb-4">
