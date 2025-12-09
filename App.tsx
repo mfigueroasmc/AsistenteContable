@@ -37,43 +37,47 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setQuery('');
     setIsLoading(true);
-    setLoadingStep('searching');
+    setLoadingStep('searching'); // Start with searching visualization
 
-    // Simulate RAG Retrieval Latency
-    setTimeout(async () => {
+    try {
+      // Simulate a brief moment for "Searching context" before calling API
+      // reduced from 1500ms to 500ms to be more responsive
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       setLoadingStep('generating');
       
-      try {
-        // Convert internal chat history to Gemini format
-        const historyForModel = messages.map(m => ({
-          role: m.role,
-          parts: [{ text: m.text }]
-        }));
+      // Convert internal chat history to Gemini format
+      // Note: We use the current 'messages' state which doesn't include the new userMsg yet
+      // because setMessages is async. This is actually what we want (history = previous messages).
+      const historyForModel = messages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.text }]
+      }));
 
-        const responseText = await sendMessageToGemini(text, selectedModule, selectedSource, historyForModel);
+      const responseText = await sendMessageToGemini(text, selectedModule, selectedSource, historyForModel);
 
-        const aiMsg: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'model',
-          text: responseText,
-          timestamp: new Date(),
-          sources: ['Manual Contabilidad CGR', 'Resolución 16', 'Histórico Ticket #8842'] // Simulated sources
-        };
+      const aiMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: responseText,
+        timestamp: new Date(),
+        sources: ['Manual Contabilidad CGR', 'Resolución 16', 'Histórico Ticket #8842'] // Simulated sources
+      };
 
-        setMessages(prev => [...prev, aiMsg]);
-      } catch (error) {
-        const errorMsg: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'model',
-          text: "Lo siento, hubo un problema al conectar con el asistente. Por favor verifica tu conexión o intenta nuevamente.",
-          timestamp: new Date(),
-          isError: true
-        };
-        setMessages(prev => [...prev, errorMsg]);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 1500); // 1.5s fake delay for "Retrieval" visualization
+      setMessages(prev => [...prev, aiMsg]);
+    } catch (error) {
+      console.error("Error in handleSend:", error);
+      const errorMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: "Lo siento, hubo un problema al conectar con el asistente. Por favor verifica tu conexión o intenta nuevamente.",
+        timestamp: new Date(),
+        isError: true
+      };
+      setMessages(prev => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleNewChat = () => {

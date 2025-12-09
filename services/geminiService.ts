@@ -45,7 +45,7 @@ export const sendMessageToGemini = async (
 
   try {
     const chat = ai.chats.create({
-      model: 'gemini-3-pro-preview', // Using the high-reasoning model for complex accounting regulations
+      model: 'gemini-2.5-flash', // Switched to flash model for better availability and speed
       config: {
         systemInstruction: getSystemInstruction(module, source),
         temperature: 0.3, // Low temperature for factual, consistent answers
@@ -54,9 +54,16 @@ export const sendMessageToGemini = async (
     });
 
     const response = await chat.sendMessage({ message: prompt });
-    return response.text || "No se pudo generar una respuesta.";
+    
+    // Check if response is blocked or empty
+    if (!response.text) {
+      console.warn("Gemini response was empty or blocked.");
+      return "Lo siento, no pude generar una respuesta para esta consulta. Por favor intenta reformular tu pregunta.";
+    }
+
+    return response.text;
   } catch (error) {
     console.error("Gemini API Error:", error);
-    throw new Error("Hubo un error al consultar el servicio de inteligencia artificial.");
+    throw error; // Re-throw to be handled by the UI
   }
 };
