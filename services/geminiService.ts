@@ -38,7 +38,7 @@ export const sendMessageToGemini = async (
 ): Promise<string> => {
   
   // NOTE: In a production app, this would be a backend call to keep the key secure.
-  const apiKey = process.env.API_KEY; 
+  const apiKey = process.env.API_KEY || "AIzaSyDm_YT-KR9A4c-GwU10QdymYjksQCyRou0"; 
   if (!apiKey) throw new Error("API Key not found");
 
   const ai = new GoogleGenAI({ apiKey });

@@ -7,7 +7,7 @@ const InfoPanel: React.FC = () => {
     <div className="mt-6 bg-slate-50 border border-slate-200 rounded-lg p-5 text-sm text-slate-600">
       <div className="flex items-center gap-2 mb-3 text-slate-800 font-semibold">
         <Database className="w-4 h-4 text-blue-600" />
-        <h3>Información Asistente de Búsqueda Soporte</h3>
+        <h3>Información Asistente de Búsqueda</h3>
       </div>
       
       <p className="mb-4 leading-relaxed">

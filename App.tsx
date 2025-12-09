@@ -82,18 +82,27 @@ const App: React.FC = () => {
     }
   };
 
+  // Filter suggestions based on selected module
+  const currentSuggestions = SUGGESTIONS.filter(
+    (s) => s.category === selectedModule
+  ).slice(0, 3);
+
+  const displaySuggestions = currentSuggestions.length > 0 
+    ? currentSuggestions 
+    : SUGGESTIONS.slice(0, 3); // Fallback to first 3 if no match
+
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] my-auto">
         
-        {/* Header */}
-        <div className="bg-blue-700 text-white p-4 flex items-center gap-3 shadow-md z-10">
+        {/* Header - Sticky ensures it stays visible even if layout shifts */}
+        <div className="bg-blue-700 text-white p-4 flex items-center gap-3 shadow-md z-20 shrink-0 sticky top-0">
           <Search className="w-6 h-6 text-blue-200" />
-          <h1 className="text-lg font-semibold tracking-wide">Asistente de Búsqueda y Soporte</h1>
+          <h1 className="text-lg font-semibold tracking-wide">Asistente del Sistema de Contabilidad</h1>
         </div>
 
         {/* Configuration Bar */}
-        <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-4">
+        <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-4 shrink-0 z-10">
           {/* Module Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
@@ -145,7 +154,7 @@ const App: React.FC = () => {
                   className="form-radio text-blue-600 focus:ring-blue-500 h-4 w-4"
                 />
                 <span className="text-sm text-slate-700 flex items-center gap-1">
-                  <History className="w-3 h-3 text-slate-400" /> Histórico Soportes
+                  <History className="w-3 h-3 text-slate-400" /> Histórico 
                 </span>
               </label>
             </div>
@@ -153,7 +162,8 @@ const App: React.FC = () => {
         </div>
 
         {/* Main Content Area (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-white relative min-h-[14rem]">
+        {/* min-h-[12rem] approx 7 lines of content */}
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin bg-white relative min-h-[12rem]">
           
           {messages.length === 0 ? (
             <div className="h-full flex flex-col justify-center items-center text-slate-500 opacity-60">
@@ -208,7 +218,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Input & Suggestions Area */}
-        <div className="bg-white p-4 border-t border-slate-100 z-10">
+        <div className="bg-white p-4 border-t border-slate-100 z-10 shrink-0">
           
           {/* Input Box */}
           <div className="relative mb-4">
@@ -235,7 +245,7 @@ const App: React.FC = () => {
 
           {/* Quick Suggestions */}
           <div className="flex flex-wrap gap-2 mb-4">
-             {SUGGESTIONS.slice(0, 3).map((suggestion) => (
+             {displaySuggestions.map((suggestion) => (
                <button
                  key={suggestion.id}
                  onClick={() => handleSend(suggestion.text)}
