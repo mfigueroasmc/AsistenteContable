@@ -52,5 +52,6 @@ export const OFFICIAL_LINKS: Link[] = [
   { name: "Biblioteca Congreso Nacional (BCN)", url: "https://www.bcn.cl" },
   { name: "SIGFE", url: "https://www.sigfe.cl" },
   { name: "SUBDERE", url: "https://www.subdere.gov.cl" },
-  { name: "Normativa Contable (CGR)", url: "https://www.contraloria.cl/web/cgr/normativa-contable" }
+  { name: "Normativa Contable (CGR)", url: "https://www.contraloria.cl/web/cgr/normativa-contable" },
+  { name: "Licencias Médicas (Nueva Normativa)", url: "https://mfigueroasmc.github.io/Contabilidad/" }
 ];

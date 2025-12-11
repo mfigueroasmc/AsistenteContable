@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Server, FileText, History, MessageSquare, Send, ChevronDown, RefreshCw } from 'lucide-react';
+import { Search, Server, FileText, History, MessageSquare, Send, ChevronDown, RefreshCw, Volume2, Square } from 'lucide-react';
 import { SystemModule, DataSource, ChatMessage } from './types';
 import { SUGGESTIONS, MODULE_OPTIONS } from './constants';
 import { sendMessageToGemini } from './services/geminiService';
@@ -15,6 +15,7 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'searching' | 'generating'>('searching');
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -24,8 +25,65 @@ const App: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
+  // Load voices explicitly for Chrome
+  useEffect(() => {
+    const loadVoices = () => {
+      window.speechSynthesis.getVoices();
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+
+  const handleSpeak = (text: string, id: string) => {
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    if (speakingId === id) {
+      // If clicking the same button, just stop.
+      setSpeakingId(null);
+      return;
+    }
+
+    // Clean markdown for better speech (simple strip)
+    const cleanText = text.replace(/[*#_`]/g, '');
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    const voices = window.speechSynthesis.getVoices();
+
+    // Priority: Chile -> Mexico -> 419 (Latam) -> Any Spanish
+    const voice = 
+      voices.find(v => v.lang === 'es-CL') ||
+      voices.find(v => v.lang === 'es-MX') ||
+      voices.find(v => v.lang === 'es-419') ||
+      voices.find(v => v.lang.startsWith('es'));
+
+    if (voice) {
+      utterance.voice = voice;
+    }
+    
+    // Slightly slower rate for better clarity on technical terms
+    utterance.rate = 0.95;
+
+    utterance.onend = () => {
+      setSpeakingId(null);
+    };
+
+    utterance.onerror = () => {
+      setSpeakingId(null);
+    };
+
+    setSpeakingId(id);
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
+
+    // Stop speech if user sends a new message
+    if (speakingId) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -47,8 +105,6 @@ const App: React.FC = () => {
       setLoadingStep('generating');
       
       // Convert internal chat history to Gemini format
-      // Note: We use the current 'messages' state which doesn't include the new userMsg yet
-      // because setMessages is async. This is actually what we want (history = previous messages).
       const historyForModel = messages.map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
@@ -81,6 +137,8 @@ const App: React.FC = () => {
   };
 
   const handleNewChat = () => {
+    window.speechSynthesis.cancel();
+    setSpeakingId(null);
     setMessages([]);
     setQuery('');
     setLoadingStep('searching');
@@ -205,8 +263,10 @@ const App: React.FC = () => {
                     }`}
                   >
                     {msg.role === 'model' && (
-                       <div className="flex items-center gap-2 mb-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
-                         <span>Asistente IA</span>
+                       <div className="flex items-center justify-between mb-2">
+                         <div className="flex items-center gap-2 text-xs font-bold text-blue-600 uppercase tracking-wider">
+                           <span>Asistente IA</span>
+                         </div>
                        </div>
                     )}
                     
@@ -218,15 +278,45 @@ const App: React.FC = () => {
                        )}
                     </div>
 
-                    {msg.role === 'model' && msg.sources && (
-                      <div className="mt-3 pt-3 border-t border-slate-100">
-                        <p className="text-xs text-slate-400 font-semibold mb-1">Fuentes consultadas:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {msg.sources.map((src, idx) => (
-                            <span key={idx} className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded-full border border-slate-200">
-                              {src}
-                            </span>
-                          ))}
+                    {msg.role === 'model' && !msg.isError && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-3">
+                        {/* Sources */}
+                        {msg.sources && (
+                          <div>
+                            <p className="text-xs text-slate-400 font-semibold mb-1">Fuentes consultadas:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {msg.sources.map((src, idx) => (
+                                <span key={idx} className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded-full border border-slate-200">
+                                  {src}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-end">
+                           <button
+                             onClick={() => handleSpeak(msg.text, msg.id)}
+                             className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all border ${
+                               speakingId === msg.id 
+                                 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                                 : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
+                             }`}
+                             title={speakingId === msg.id ? "Detener lectura" : "Escuchar respuesta"}
+                           >
+                             {speakingId === msg.id ? (
+                               <>
+                                 <Square className="w-3.5 h-3.5 fill-current" />
+                                 <span>Detener</span>
+                               </>
+                             ) : (
+                               <>
+                                 <Volume2 className="w-3.5 h-3.5" />
+                                 <span>Escuchar</span>
+                               </>
+                             )}
+                           </button>
                         </div>
                       </div>
                     )}
