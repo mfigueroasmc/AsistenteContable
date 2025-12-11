@@ -98,9 +98,8 @@ const App: React.FC = () => {
     setLoadingStep('searching'); // Start with searching visualization
 
     try {
-      // Simulate a brief moment for "Searching context" before calling API
-      // reduced from 1500ms to 500ms to be more responsive
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Keep a small delay for UI transition smoothness (Searching -> Generating)
+      await new Promise(resolve => setTimeout(resolve, 600));
       
       setLoadingStep('generating');
       
@@ -110,14 +109,15 @@ const App: React.FC = () => {
         parts: [{ text: m.text }]
       }));
 
-      const responseText = await sendMessageToGemini(text, selectedModule, selectedSource, historyForModel);
+      // Call API - now returns object with text AND real sources
+      const { text: responseText, sources } = await sendMessageToGemini(text, selectedModule, selectedSource, historyForModel);
 
       const aiMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
         text: responseText,
         timestamp: new Date(),
-        sources: ['Manual Contabilidad CGR', 'Resolución 16', 'Histórico Ticket #8842'] // Simulated sources
+        sources: sources // Use real sources from Google Search Grounding
       };
 
       setMessages(prev => [...prev, aiMsg]);
@@ -281,13 +281,13 @@ const App: React.FC = () => {
                     {msg.role === 'model' && !msg.isError && (
                       <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-3">
                         {/* Sources */}
-                        {msg.sources && (
+                        {msg.sources && msg.sources.length > 0 && (
                           <div>
-                            <p className="text-xs text-slate-400 font-semibold mb-1">Fuentes consultadas:</p>
+                            <p className="text-xs text-slate-400 font-semibold mb-1">Fuentes Web (Google Search):</p>
                             <div className="flex flex-wrap gap-2">
                               {msg.sources.map((src, idx) => (
-                                <span key={idx} className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded-full border border-slate-200">
-                                  {src}
+                                <span key={idx} className="bg-slate-100 text-slate-500 text-[10px] px-2 py-1 rounded-full border border-slate-200 flex items-center gap-1">
+                                  <Search className="w-2.5 h-2.5 opacity-50" /> {src}
                                 </span>
                               ))}
                             </div>
