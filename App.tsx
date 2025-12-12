@@ -248,7 +248,7 @@ const App: React.FC = () => {
           
           {messages.length === 0 ? (
             <div className="h-full py-12 flex flex-col justify-center items-center text-slate-500 opacity-60">
-               <MessageSquare className="w-16 h-16 mb-4 text-slate-200" />
+               <MessageSquare className="w-16 h-16 mb-4 text-slate-150" />
                <p className="text-sm font-medium">Inicia una consulta seleccionando un módulo del sistema</p>
             </div>
           ) : (

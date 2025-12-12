@@ -10,11 +10,12 @@ const InfoPanel: React.FC = () => {
         <h3>Información Asistente de Búsqueda</h3>
       </div>
       
-      <p className="mb-4 leading-relaxed">
-        Esta plataforma incorpora un motor de búsqueda semántica avanzada basado en 
-        <strong className="text-slate-800"> Retrieval-Augmented Generation (RAG)</strong> e 
-        <strong className="text-slate-800"> Inteligencia Artificial (Gemini Pro)</strong>, 
-        diseñado para entregar respuestas claras, contextualizadas y orientadas a la resolución eficiente de problemas contables municipales.
+      <p className="mb-4 leading-relaxed text-justify">
+        Este sistema inteligente ha sido desarrollado para fortalecer la gestión financiera municipal, proporcionando asistencia técnica basada exclusivamente en fuentes oficiales. 
+        Integra normativas de la <strong className="text-slate-800">Contraloría General de la República (CGR)</strong>, 
+        instrucciones de la <strong className="text-slate-800">Dirección de Presupuestos (DIPRES)</strong>, 
+        lineamientos de la <strong className="text-slate-800">SUBDERE</strong> y legislación vigente de la 
+        <strong className="text-slate-800"> Biblioteca del Congreso Nacional (BCN)</strong>.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
