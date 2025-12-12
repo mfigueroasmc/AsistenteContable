@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Server, FileText, History, MessageSquare, Send, ChevronDown, RefreshCw, Volume2, Square } from 'lucide-react';
+import { Search, Server, FileText, History, MessageSquare, Send, ChevronDown, RefreshCw, Volume2, Square, Loader2 } from 'lucide-react';
 import { SystemModule, DataSource, ChatMessage } from './types';
 import { SUGGESTIONS, MODULE_OPTIONS } from './constants';
 import { sendMessageToGemini } from './services/geminiService';
@@ -15,64 +15,62 @@ const App: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState<'searching' | 'generating'>('searching');
+  
+  // Audio State (Native Web Speech API)
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom on new message
   useEffect(() => {
-    // With full page scrolling, this will scroll the window
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  // Load voices explicitly for Chrome
+  // Ensure speech is stopped when component unmounts
   useEffect(() => {
-    const loadVoices = () => {
-      window.speechSynthesis.getVoices();
+    return () => {
+      window.speechSynthesis.cancel();
     };
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
   }, []);
 
-  const handleSpeak = (text: string, id: string) => {
-    // Stop any current speech
+  const stopAudio = () => {
     window.speechSynthesis.cancel();
+    setSpeakingId(null);
+  };
 
+  const handleSpeak = (text: string, id: string) => {
+    // If clicking the currently playing message, stop it.
     if (speakingId === id) {
-      // If clicking the same button, just stop.
-      setSpeakingId(null);
+      stopAudio();
       return;
     }
 
-    // Clean markdown for better speech (simple strip)
-    const cleanText = text.replace(/[*#_`]/g, '');
+    // Stop any other audio playing
+    stopAudio();
+
+    // Clean markdown characters for better reading experience
+    const cleanText = text.replace(/[*#_`\[\]]/g, '');
 
     const utterance = new SpeechSynthesisUtterance(cleanText);
+    
+    // Optimization: Try to select a Spanish voice
     const voices = window.speechSynthesis.getVoices();
-
-    // Priority: Chile -> Mexico -> 419 (Latam) -> Any Spanish
-    const voice = 
-      voices.find(v => v.lang === 'es-CL') ||
-      voices.find(v => v.lang === 'es-MX') ||
-      voices.find(v => v.lang === 'es-419') ||
-      voices.find(v => v.lang.startsWith('es'));
-
-    if (voice) {
-      utterance.voice = voice;
+    const spanishVoice = voices.find(v => v.lang.includes('es-CL')) || // Chilean Spanish preferred
+                         voices.find(v => v.lang.includes('es-419')) || // Latin American Spanish
+                         voices.find(v => v.lang.includes('es'));     // General Spanish
+    
+    if (spanishVoice) {
+      utterance.voice = spanishVoice;
     }
     
-    // Slightly slower rate for better clarity on technical terms
-    utterance.rate = 0.95;
+    utterance.lang = 'es-ES'; // Fallback language
+    utterance.rate = 1.1; // Slightly faster for efficiency
+    utterance.pitch = 1.0;
 
-    utterance.onend = () => {
-      setSpeakingId(null);
-    };
+    utterance.onstart = () => setSpeakingId(id);
+    utterance.onend = () => setSpeakingId(null);
+    utterance.onerror = () => setSpeakingId(null);
 
-    utterance.onerror = () => {
-      setSpeakingId(null);
-    };
-
-    setSpeakingId(id);
     window.speechSynthesis.speak(utterance);
   };
 
@@ -80,10 +78,7 @@ const App: React.FC = () => {
     if (!text.trim()) return;
 
     // Stop speech if user sends a new message
-    if (speakingId) {
-      window.speechSynthesis.cancel();
-      setSpeakingId(null);
-    }
+    stopAudio();
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -95,21 +90,17 @@ const App: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setQuery('');
     setIsLoading(true);
-    setLoadingStep('searching'); // Start with searching visualization
+    setLoadingStep('searching'); 
 
     try {
-      // Keep a small delay for UI transition smoothness (Searching -> Generating)
       await new Promise(resolve => setTimeout(resolve, 600));
-      
       setLoadingStep('generating');
       
-      // Convert internal chat history to Gemini format
       const historyForModel = messages.map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
       }));
 
-      // Call API - now returns object with text AND real sources
       const { text: responseText, sources } = await sendMessageToGemini(text, selectedModule, selectedSource, historyForModel);
 
       const aiMsg: ChatMessage = {
@@ -117,7 +108,7 @@ const App: React.FC = () => {
         role: 'model',
         text: responseText,
         timestamp: new Date(),
-        sources: sources // Use real sources from Google Search Grounding
+        sources: sources 
       };
 
       setMessages(prev => [...prev, aiMsg]);
@@ -137,8 +128,7 @@ const App: React.FC = () => {
   };
 
   const handleNewChat = () => {
-    window.speechSynthesis.cancel();
-    setSpeakingId(null);
+    stopAudio();
     setMessages([]);
     setQuery('');
     setLoadingStep('searching');
@@ -152,21 +142,19 @@ const App: React.FC = () => {
     }
   };
 
-  // Filter suggestions based on selected module
   const currentSuggestions = SUGGESTIONS.filter(
     (s) => s.category === selectedModule
   ).slice(0, 3);
 
   const displaySuggestions = currentSuggestions.length > 0 
     ? currentSuggestions 
-    : SUGGESTIONS.slice(0, 3); // Fallback to first 3 if no match
+    : SUGGESTIONS.slice(0, 3); 
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center p-4 pb-12">
-      {/* Removed fixed height (max-h) and internal scroll (overflow-hidden) to show full content */}
       <div className="w-full max-w-3xl bg-white rounded-xl shadow-xl flex flex-col">
         
-        {/* Header - Sticky ensures it stays visible even if layout shifts */}
+        {/* Header */}
         <div className="bg-blue-700 text-white p-4 flex items-center justify-between shadow-md z-30 sticky top-0 rounded-t-xl">
           <div className="flex items-center gap-3">
             <Search className="w-6 h-6 text-blue-200" />
@@ -185,7 +173,6 @@ const App: React.FC = () => {
 
         {/* Configuration Bar */}
         <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-4 z-20">
-          {/* Module Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-1 flex items-center gap-1">
               <Server className="w-3 h-3" /> Seleccione Sistema (Menú Principal)
@@ -206,7 +193,6 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          {/* Source Selector */}
           <div>
             <label className="block text-xs font-bold text-slate-500 uppercase mb-2 flex items-center gap-1">
               <History className="w-3 h-3" /> Origen de la información
@@ -243,12 +229,12 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Area - Expands naturally with content */}
+        {/* Main Content Area */}
         <div className="flex-1 p-4 bg-white relative min-h-[300px]">
           
           {messages.length === 0 ? (
             <div className="h-full py-12 flex flex-col justify-center items-center text-slate-500 opacity-60">
-               <MessageSquare className="w-16 h-16 mb-4 text-slate-150" />
+               <MessageSquare className="w-16 h-16 mb-4 text-slate-200" />
                <p className="text-sm font-medium">Inicia una consulta seleccionando un módulo del sistema</p>
             </div>
           ) : (
@@ -294,16 +280,16 @@ const App: React.FC = () => {
                           </div>
                         )}
                         
-                        {/* Action Buttons */}
+                        {/* Action Buttons - Updated for Native TTS */}
                         <div className="flex items-center justify-end">
                            <button
                              onClick={() => handleSpeak(msg.text, msg.id)}
                              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full transition-all border ${
-                               speakingId === msg.id 
+                               speakingId === msg.id
                                  ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
                                  : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
                              }`}
-                             title={speakingId === msg.id ? "Detener lectura" : "Escuchar respuesta"}
+                             title={speakingId === msg.id ? "Detener lectura" : "Escuchar respuesta (Voz Nativa)"}
                            >
                              {speakingId === msg.id ? (
                                <>
@@ -330,10 +316,9 @@ const App: React.FC = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input & Suggestions Area - Flows at the bottom */}
+        {/* Input & Suggestions Area */}
         <div className="bg-white p-4 border-t border-slate-100 z-10">
           
-          {/* Input Box */}
           <div className="relative mb-4">
             <textarea
               value={query}
@@ -356,7 +341,6 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* Quick Suggestions */}
           <div className="flex flex-wrap gap-2 mb-4">
              {displaySuggestions.map((suggestion) => (
                <button
